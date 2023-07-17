@@ -126,6 +126,63 @@ const refreshToken = asyncHandler(async (req, res) => {
 
 })
 
+const checkToken = asyncHandler(async (req, res) => {
+
+  const refreshToken = req.body.token;
+  const token = req.headers["x-access-token"];
+  if(!!refreshToken && !!token){
+    await UserToken.findOne({
+      where: {
+        token: refreshToken
+      }
+    }).then(savedToken => {
+      console.log(savedToken)
+      if (savedToken) {
+        console.error("save ok");
+      }
+
+    });
+    jwt.verify(refreshToken, config.refreshTokenSecret, function(err, decoded) {
+      if (err) {
+          console.error(err.toString());
+          //if (err) throw new Error(err)
+          // return res.status(401).json({"error": true, "message": 'Unauthorized access.', err });
+      }else{
+        console.error("rf ok");
+      }
+      
+  });
+    jwt.verify(token, config.secret, function(err, decoded) {
+      if (err) {
+          console.error(err.toString());
+          //if (err) throw new Error(err)
+          // return res.status(401).json({"error": true, "message": 'Unauthorized access.', err });
+      }else{
+        console.error("token ok");
+
+      }
+
+  });
+  }
+
+  // // if refresh token exists
+  // if ((postData.refreshToken) && (postData.refreshToken in tokenList)) {
+  //   const user = {
+  //     "email": postData.email,
+  //     "name": postData.name
+  //   }
+  //   const token = jwt.sign(user, config.secret, { expiresIn: config.tokenLife })
+  //   const response = {
+  //     "token": token,
+  //   }
+  //   // update the token in the list
+  //   tokenList[postData.refreshToken].token = token
+  //   res.status(200).json(response);
+  // } else {
+  //   res.status(404).send('Invalid request')
+  // }
+
+})
 // const generateTokens = async (user) => {
 //     try {
 //         const payload = { _id: user._id};
@@ -172,5 +229,5 @@ const refreshToken = asyncHandler(async (req, res) => {
 // };
 
 export {
-  registerUser, loginUser, refreshToken
+  registerUser, loginUser, refreshToken,checkToken
 }

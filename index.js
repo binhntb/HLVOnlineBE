@@ -38,7 +38,7 @@ app.use(function (req, res, next) {
     next();
 });
 app.use(cors()) 
-app.use('/login', loginRoutes);
+app.use('/auth', loginRoutes);
 
 //Start the application
 app.listen(PORT, function () {
