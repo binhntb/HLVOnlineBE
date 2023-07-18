@@ -81,7 +81,7 @@ const loginUser = asyncHandler(async (req, res) => {
         UserToken.create({
           userId: user.id,
           token: refreshToken,
-          expirationDate:expiredAt
+          expirationDate: expiredAt
         });
         // tokenList[refreshToken] = response
         res.status(200).send({
@@ -104,65 +104,84 @@ const loginUser = asyncHandler(async (req, res) => {
 
 })
 
-const refreshToken = asyncHandler(async (req, res) => {
+// const refreshToken = asyncHandler(async (req, res) => {
 
-  const postData = req.body
-  // if refresh token exists
-  if ((postData.refreshToken) && (postData.refreshToken in tokenList)) {
-    const user = {
-      "email": postData.email,
-      "name": postData.name
-    }
-    const token = jwt.sign(user, config.secret, { expiresIn: config.tokenLife })
-    const response = {
-      "token": token,
-    }
-    // update the token in the list
-    tokenList[postData.refreshToken].token = token
-    res.status(200).json(response);
-  } else {
-    res.status(404).send('Invalid request')
-  }
+//   const postData = req.body
+//   // if refresh token exists
+//   if ((postData.refreshToken) && (postData.refreshToken in tokenList)) {
+//     const user = {
+//       "email": postData.email,
+//       "name": postData.name
+//     }
+//     const token = jwt.sign(user, config.secret, { expiresIn: config.tokenLife })
+//     const response = {
+//       "token": token,
+//     }
+//     // update the token in the list
+//     tokenList[postData.refreshToken].token = token
+//     res.status(200).json(response);
+//   } else {
+//     res.status(404).send('Invalid request')
+//   }
 
+// })
+
+const firstLogin = asyncHandler(async (req, res) => {
+  return res.json({ message: "ok" })
 })
-
 const checkToken = asyncHandler(async (req, res) => {
 
-  const refreshToken = req.body.token;
+  const refreshToken = req.body.refreshToken;
   const token = req.headers["x-access-token"];
-  if(!!refreshToken && !!token){
+  var userInfor;
+  if (!!refreshToken && !!token) {
     await UserToken.findOne({
       where: {
         token: refreshToken
       }
-    }).then(savedToken => {
-      console.log(savedToken)
-      if (savedToken) {
-        console.error("save ok");
+    }).then(async savedToken => {
+      if (!savedToken) {
+        return res.status(401).send({ message: "tokenDeleted" });
       }
+      await User.findOne({
+        where: {
+          id: savedToken.userId
+        }
+      }).then(user=>{
+        if (!user) {
+          return res.status(401).send({ message: "deletedUser" });
+        }else{
+          userInfor=user;
+        }
+      })
+    });
+    
+    jwt.verify(token, config.secret, function (err, decoded) {
+      if (err) {
+        console.error(err.toString());
+        jwt.verify(refreshToken, config.refreshTokenSecret, function (err, decoded) {
+          if (err) {
+            console.error(err.toString());
+            return res.status(401).send({ message: "refreshTokenEnd" });
+          }else{
+            const newToken = jwt.sign(userInfor.toJSON(), config.secret, { expiresIn: config.tokenLife })
+            let expiredAt = new Date();
+            expiredAt.setSeconds(expiredAt.getSeconds() + config.refreshTokenLife);
+            res.status(200).send({
+              id: userInfor.id,
+              username: userInfor.userName,
+              email: userInfor.email,
+              phone: userInfor.phone,
+              accessToken: newToken,
+              refreshToken: refreshToken,
+            });
+          }
+    
+        });
+
+      } 
 
     });
-    jwt.verify(refreshToken, config.refreshTokenSecret, function(err, decoded) {
-      if (err) {
-          console.error(err.toString());
-          //if (err) throw new Error(err)
-          // return res.status(401).json({"error": true, "message": 'Unauthorized access.', err });
-      }else{
-        console.error("rf ok");
-      }
-      
-  });
-    jwt.verify(token, config.secret, function(err, decoded) {
-      if (err) {
-          console.error(err.toString());
-          //if (err) throw new Error(err)
-          // return res.status(401).json({"error": true, "message": 'Unauthorized access.', err });
-      }else{
-        console.error("token ok");
-
-      }
-
-  });
   }
 
   // // if refresh token exists
@@ -229,5 +248,5 @@ const checkToken = asyncHandler(async (req, res) => {
 // };
 
 export {
-  registerUser, loginUser, refreshToken,checkToken
+  registerUser, loginUser,  checkToken,firstLogin
 }
